@@ -19,4 +19,4 @@ def health_check():
 
 @app.get("/test")
 def health_check():
-    return {"status": "Backend test running"}
+    return {"status": "Backend tests running"}
