@@ -1,5 +1,5 @@
 # backend/app/main.py
-
+# devlopment branch
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,3 +16,7 @@ app.add_middleware(
 @app.get("/")
 def health_check():
     return {"status": "Backend running"}
+
+@app.get("/test")
+def health_check():
+    return {"status": "Backend test running"}
