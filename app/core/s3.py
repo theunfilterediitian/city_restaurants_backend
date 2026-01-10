@@ -25,3 +25,16 @@ def upload_file_to_s3(file, folder: str) -> str:
     )
 
     return f"https://{settings.AWS_S3_BUCKET}.s3.{settings.AWS_REGION}.amazonaws.com/{key}"
+
+
+def delete_file_from_s3(image_url: str):
+    """
+    Extracts S3 key from full URL and deletes object
+    """
+    base = f"https://{settings.AWS_S3_BUCKET}.s3.{settings.AWS_REGION}.amazonaws.com/"
+    key = image_url.replace(base, "")
+
+    s3.delete_object(
+        Bucket=settings.AWS_S3_BUCKET,
+        Key=key
+    )

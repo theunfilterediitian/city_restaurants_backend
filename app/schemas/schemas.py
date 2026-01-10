@@ -46,6 +46,7 @@ class ProductImageRead(BaseModel):
         orm_mode = True
 
 
+
 # ============================
 # Products
 # ============================
@@ -115,6 +116,8 @@ class RestaurantCreate(BaseModel):
     location: Optional[str] = None
     type: Optional[str] = None
     pure_veg: Optional[bool] = False
+    logo_url: Optional[str] = None
+
 
 
 class RestaurantRead(BaseModel):
@@ -129,6 +132,7 @@ class RestaurantRead(BaseModel):
     location: Optional[str]
     type: Optional[str]
     pure_veg: bool
+    logo_url: Optional[str]
 
     class Config:
         orm_mode = True
@@ -146,3 +150,50 @@ class RestaurantUpdate(BaseModel):
     location: Optional[str] = None
     type: Optional[str] = None
     pure_veg: Optional[bool] = None
+    logo_url: Optional[str] = None
+    
+    
+class PublicRestaurantRead(BaseModel):
+    id: int
+    name: str
+    email: str
+    country_code: str
+    state_code: str
+    city_code: str
+    location: Optional[str]
+    logo_url: Optional[str]
+    pure_veg: bool
+    staff_rating: int
+    type: str
+
+    class Config:
+        orm_mode = True
+        
+
+class PublicProductRead(BaseModel):
+    id: int
+    restaurant_id: int
+
+    name: str
+    description: Optional[str]
+    remark: Optional[str]
+
+    veg: Optional[bool]
+    iced: bool
+    available: bool
+
+    sizes: List[ProductSizeRead] = []
+    images: List[ProductImageRead] = []
+    categories: List[CategoryRead] = []
+
+    class Config:
+        orm_mode = True
+        
+from typing import List
+
+class PublicRestaurantView(BaseModel):
+    restaurant: PublicRestaurantRead
+    products: List[PublicProductRead]
+
+    class Config:
+        orm_mode = True

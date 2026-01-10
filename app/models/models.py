@@ -11,6 +11,8 @@ product_category = Table(
     Column("product_id", ForeignKey("products.id"), primary_key=True),
     Column("category_id", ForeignKey("categories.id"), primary_key=True),
 )
+
+
 class Restaurant(Base):
     __tablename__ = "restaurants"
 
@@ -29,6 +31,8 @@ class Restaurant(Base):
     type = Column(String(100))
     staff_rating = Column(Float, default=0.0)
     pure_veg = Column(Boolean, default=False)
+    
+    logo_url = Column(String(500), nullable=True)
 
     products = relationship("Product", back_populates="restaurant")
 
@@ -40,6 +44,7 @@ class Category(Base):
     remark = Column(String(500), nullable=True)
 
     products = relationship("Product", secondary=product_category, back_populates="categories")
+
 
 class Product(Base):
     __tablename__ = "products"
