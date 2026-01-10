@@ -10,20 +10,28 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.models.models import User
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="Restaurant API")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",     # Vite
-        "http://localhost:3000",     # React (CRA)
+        # 🔹 Local development
+        "http://localhost:5173",
+        "http://localhost:3000",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
-         "file://",
+
+        # 🔹 EC2 public IP (IMPORTANT)
+        "http://3.110.185.186",
+        "http://3.110.185.186:80",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 app.include_router(api_router, prefix="/api/v1")
 app.include_router(auth_router)
