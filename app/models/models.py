@@ -35,6 +35,8 @@ class Restaurant(Base):
     logo_url = Column(String(500), nullable=True)
 
     products = relationship("Product", back_populates="restaurant")
+    
+    is_deleted = Column(Boolean, default=False)
 
 
 class Category(Base):
@@ -73,6 +75,8 @@ class Product(Base):
         back_populates="product",
         cascade="all, delete-orphan"
     )
+    
+    is_deleted = Column(Boolean, default=False)
 
 class ProductImage(Base):
     __tablename__ = "product_images"

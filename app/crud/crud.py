@@ -56,11 +56,15 @@ def delete_restaurant(db: Session, restaurant_id: int):
 
 
 def get_restaurant(db: Session, rest_id: int):
-    return (
-        db.query(models.Restaurant)
-        .filter(models.Restaurant.id == rest_id)
-        .first()
-    )
+    return db.query(models.Restaurant).filter(
+        models.Restaurant.id == rest_id,
+        models.Restaurant.is_deleted == False #
+    ).first()
+    
+def get_restaurants(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Restaurant).filter(
+        models.Restaurant.is_deleted == False #
+    ).offset(skip).limit(limit).all()
 
 
 def get_restaurant_by_email(db: Session, email: str):
@@ -71,13 +75,6 @@ def get_restaurant_by_email(db: Session, email: str):
     )
 
 
-def get_restaurants(db: Session, skip: int = 0, limit: int = 100):
-    return (
-        db.query(models.Restaurant)
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
     
 
 def get_restaurant_by_id(db: Session, restaurant_id: int):
@@ -209,20 +206,13 @@ def update_product(
 
 
 
-def get_products_by_restaurant(db: Session, rest_id: int):
-    return (
-        db.query(models.Product)
-        .filter(models.Product.restaurant_id == rest_id)
-        .all()
-    )
 
 
 def get_product(db: Session, product_id: int):
-    return (
-        db.query(models.Product)
-        .filter(models.Product.id == product_id)
-        .first()
-    )
+    return db.query(models.Product).filter(
+        models.Product.id == product_id,
+        models.Product.is_deleted == False #
+    ).first()
 
 
 def update_product_availability(
@@ -282,3 +272,36 @@ def add_product_sizes(
 
     db.refresh(size)
     return size
+
+
+# app/crud/crud.py
+
+# --- Restaurants ---
+
+def soft_delete_restaurant(db: Session, restaurant_id: int):
+    restaurant = db.query(models.Restaurant).filter(models.Restaurant.id == restaurant_id).first()
+    if restaurant:
+        restaurant.is_deleted = True
+        # CASCADE: Mark all products of this restaurant as deleted too
+        db.query(models.Product).filter(
+            models.Product.restaurant_id == restaurant_id
+        ).update({"is_deleted": True}) #
+        db.commit()
+    return restaurant
+
+
+# --- Products ---
+
+def soft_delete_product(db: Session, product_id: int):
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    if product:
+        product.is_deleted = True #
+        db.commit()
+    return product
+
+
+def get_products_by_restaurant(db: Session, rest_id: int):
+    return db.query(models.Product).filter(
+        models.Product.restaurant_id == rest_id,
+        models.Product.is_deleted == False
+    ).all()

@@ -32,6 +32,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-print("REGION:", settings.AWS_REGION)
-print("BUCKET:", settings.AWS_S3_BUCKET)
-print("ACCESS KEY:", settings.AWS_ACCESS_KEY_ID[:6])
+# print("REGION:", settings.AWS_REGION)
+# print("BUCKET:", settings.AWS_S3_BUCKET)
+# print("ACCESS KEY:", settings.AWS_ACCESS_KEY_ID[:6])

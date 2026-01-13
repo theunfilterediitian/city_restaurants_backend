@@ -17,6 +17,8 @@ from app.crud.crud import (
     create_product,
     get_products_by_restaurant,
     get_product,
+    soft_delete_product,
+    soft_delete_restaurant,
     update_product,
     update_product_availability,
     get_restaurant_by_id,
@@ -560,3 +562,27 @@ def get_public_restaurant_view(
         "restaurant": restaurant,
         "products": products
     }
+    
+    
+    # app/api/api_v1.py
+
+@router.delete("/restaurants/{restaurant_id}", tags=["Restaurant"])
+def delete_restaurant_api(restaurant_id: int, db: Session = Depends(get_db), user=Depends(require_admin)):
+    # Calls the CRUD soft delete
+    success = soft_delete_restaurant(db, restaurant_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+    return {"detail": "Restaurant soft-deleted successfully"}
+
+@router.delete("/products/{product_id}", tags=["Product"])
+def delete_product_api(
+    product_id: int, 
+    db: Session = Depends(get_db),
+    user=Depends(require_restaurant)
+):
+    product = get_product(db, product_id) # Ensure you filter by is_deleted inside get_product too
+    if not product or product.restaurant_id != user["restaurant_id"]:
+        raise HTTPException(status_code=403, detail="Not allowed or not found")
+    
+    soft_delete_product(db, product_id)
+    return {"detail": "Product soft-deleted successfully"}
