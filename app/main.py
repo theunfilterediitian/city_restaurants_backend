@@ -17,20 +17,25 @@ app = FastAPI(title="Restaurant API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        # 🔹 Local development
+        # Local development
         "http://localhost:5173",
         "http://localhost:3000",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
 
-        # 🔹 EC2 public IP (IMPORTANT)
+        # EC2 IP (optional now)
         "http://3.110.185.186",
         "http://3.110.185.186:80",
+
+        # ✅ Production domains (THIS WAS MISSING)
+        "https://indianrestros.com",
+        "https://www.indianrestros.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 app.include_router(api_router, prefix="/api/v1")
