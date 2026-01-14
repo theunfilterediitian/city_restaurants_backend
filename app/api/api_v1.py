@@ -8,6 +8,7 @@ import shutil, os
 from pydantic import EmailStr  # Add this\
 from app.crud.crud import (
     create_restaurant,
+    delete_category,
     delete_restaurant,
     get_restaurants,
     get_restaurant,
@@ -586,3 +587,16 @@ def delete_product_api(
     
     soft_delete_product(db, product_id)
     return {"detail": "Product soft-deleted successfully"}
+
+
+
+@router.delete("/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Category"])
+def delete_category_api(
+    category_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(require_admin) # Restricted to Admin
+):
+    success = delete_category(db, category_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return

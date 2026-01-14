@@ -305,3 +305,12 @@ def get_products_by_restaurant(db: Session, rest_id: int):
         models.Product.restaurant_id == rest_id,
         models.Product.is_deleted == False
     ).all()
+    
+    
+def delete_category(db: Session, category_id: int):
+    category = db.query(models.Category).filter(models.Category.id == category_id).first()
+    if category:
+        db.delete(category)
+        db.commit()
+        return True
+    return False
