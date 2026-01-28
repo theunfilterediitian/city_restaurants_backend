@@ -109,6 +109,15 @@ class ProductSize(Base):
     )
 
 
+class MediaAsset(Base):
+    __tablename__ = "media_assets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    label = Column(String(255), nullable=False)
+    image_url = Column(String(1024), nullable=False)
+    date_created = Column(DateTime, default=datetime.utcnow)
+
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)

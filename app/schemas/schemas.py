@@ -46,9 +46,23 @@ class ProductImageRead(BaseModel):
         orm_mode = True
 
 
-
 # ============================
-# Products
+# Media Assets (Gallery)
+# ============================
+
+class MediaAssetBase(BaseModel):
+    label: str
+    image_url: str
+
+class MediaAssetCreate(MediaAssetBase):
+    pass
+
+class MediaAssetRead(MediaAssetBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
 # ============================
 
 class ProductCreate(BaseModel):
@@ -60,6 +74,7 @@ class ProductCreate(BaseModel):
     description: Optional[str] = None
     category_ids: List[int] = []
     sizes: List[ProductSizeCreate] = []
+    gallery_image_urls: List[str] = []
 
 
 class ProductRead(BaseModel):

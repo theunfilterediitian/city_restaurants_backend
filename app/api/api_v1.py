@@ -38,6 +38,8 @@ from app.schemas.schemas import (
     ProductImageRead,
     ProductAvailabilityUpdate,
     RestaurantUpdate,
+    MediaAssetRead,
+    MediaAssetCreate,
 )
 from app.models.models import Product, ProductImage
 
@@ -314,6 +316,16 @@ def create_product_api(
         db.commit()
         db.refresh(product_obj)
 
+    # 🔹 Add gallery images
+    if product_in.gallery_image_urls:
+        for url in product_in.gallery_image_urls:
+            db.add(ProductImage(
+                product_id=product_obj.id,
+                image_url=url
+            ))
+        db.commit()
+        db.refresh(product_obj)
+
     return product_obj
 
 
@@ -401,6 +413,16 @@ def update_product_api(
                 image_url=url
             ))
 
+        db.commit()
+        db.refresh(updated_product)
+
+    # 🔹 Add gallery images
+    if product_in.gallery_image_urls:
+        for url in product_in.gallery_image_urls:
+            db.add(ProductImage(
+                product_id=product_id,
+                image_url=url
+            ))
         db.commit()
         db.refresh(updated_product)
 
@@ -599,4 +621,75 @@ def delete_category_api(
     success = delete_category(db, category_id)
     if not success:
         raise HTTPException(status_code=404, detail="Category not found")
+    return
+
+
+# =========================================================
+# MEDIA GALLERY (ADMIN UPLOAD, REUSABLE BY ALL)
+# =========================================================
+
+@router.post(
+    "/media/upload/",
+    response_model=List[MediaAssetRead],
+    dependencies=[Depends(require_admin)],
+    tags=["Media"]
+)
+def upload_media_assets_api(
+    labels: str = Form(...),            # JSON string: ["Label 1", "Label 2"]
+    files: List[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+):
+    try:
+        labels_list = json.loads(labels)
+    except Exception:
+        raise HTTPException(status_code=400, detail="labels must be a JSON array of strings")
+
+    if len(labels_list) != len(files):
+        raise HTTPException(status_code=400, detail="Number of labels must match number of files")
+
+    assets = []
+    for label, file in zip(labels_list, files):
+        url = upload_file_to_s3(file, folder="gallery")
+        asset = models.MediaAsset(
+            label=label,
+            image_url=url
+        )
+        db.add(asset)
+        assets.append(asset)
+
+    db.commit()
+    for asset in assets:
+        db.refresh(asset)
+    
+    return assets
+
+@router.get(
+    "/media/",
+    response_model=List[MediaAssetRead],
+    tags=["Media"]
+)
+def list_media_assets_api(
+    db: Session = Depends(get_db),
+):
+    return db.query(models.MediaAsset).all()
+
+@router.delete(
+    "/media/{asset_id}",
+    status_code=204,
+    dependencies=[Depends(require_admin)],
+    tags=["Media"]
+)
+def delete_media_asset_api(
+    asset_id: int,
+    db: Session = Depends(get_db),
+):
+    asset = db.query(models.MediaAsset).filter(models.MediaAsset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Media asset not found")
+    
+    # 🔥 delete from S3
+    delete_file_from_s3(asset.image_url)
+
+    db.delete(asset)
+    db.commit()
     return
