@@ -103,6 +103,8 @@ class ProductUpdate(BaseModel):
     description: Optional[str] = None
     category_ids: Optional[List[int]] = None
     sizes: Optional[List[ProductSizeCreate]] = None
+    gallery_image_urls: Optional[List[str]] = None
+
         
     
 

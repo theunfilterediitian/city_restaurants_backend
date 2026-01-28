@@ -690,6 +690,10 @@ def delete_media_asset_api(
     # 🔥 delete from S3
     delete_file_from_s3(asset.image_url)
 
+    # 🔹 ALSO DELETE from product_images where image_url matches
+    db.query(models.ProductImage).filter(models.ProductImage.image_url == asset.image_url).delete()
+
     db.delete(asset)
     db.commit()
+
     return
