@@ -32,9 +32,11 @@ class Restaurant(Base):
     staff_rating = Column(Float, default=0.0)
     pure_veg = Column(Boolean, default=False)
     
+    landmark = Column(String(500), nullable=True)
     logo_url = Column(String(500), nullable=True)
 
     products = relationship("Product", back_populates="restaurant")
+    categories = relationship("Category", back_populates="restaurant")
     
     is_deleted = Column(Boolean, default=False)
 
@@ -42,10 +44,17 @@ class Restaurant(Base):
 class Category(Base):
     __tablename__ = "categories"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), unique=True, nullable=False)  # e.g. Starter, Drinks, Snacks, Dessert
+    restaurant_id = Column(Integer, ForeignKey("restaurants.id", ondelete="CASCADE"), nullable=True) # Nullable for legacy or system categories if needed, but per request it belongs to restaurant
+    name = Column(String(100), nullable=False)  # Removed unique=True
     remark = Column(String(500), nullable=True)
+    image_url = Column(String(1024), nullable=True)
 
+    restaurant = relationship("Restaurant", back_populates="categories")
     products = relationship("Product", secondary=product_category, back_populates="categories")
+
+    __table_args__ = (
+        UniqueConstraint("name", "restaurant_id", name="uq_category_name_restaurant"),
+    )
 
 
 class Product(Base):

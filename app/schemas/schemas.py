@@ -25,6 +25,8 @@ class ProductSizeRead(ProductSizeCreate):
 class CategoryBase(BaseModel):
     name: str
     remark: Optional[str] = None
+    image_url: Optional[str] = None
+    restaurant_id: Optional[int] = None
 
 
 class CategoryRead(CategoryBase):
@@ -134,6 +136,7 @@ class RestaurantCreate(BaseModel):
     type: Optional[str] = None
     pure_veg: Optional[bool] = False
     logo_url: Optional[str] = None
+    landmark: Optional[str] = None
 
 
 
@@ -150,6 +153,7 @@ class RestaurantRead(BaseModel):
     type: Optional[str]
     pure_veg: bool
     logo_url: Optional[str]
+    landmark: Optional[str]
 
     class Config:
         orm_mode = True
@@ -168,6 +172,7 @@ class RestaurantUpdate(BaseModel):
     type: Optional[str] = None
     pure_veg: Optional[bool] = None
     logo_url: Optional[str] = None
+    landmark: Optional[str] = None
     
     
 class PublicRestaurantRead(BaseModel):

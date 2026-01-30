@@ -107,7 +107,9 @@ def update_restaurant(db: Session, restaurant_id: int, data):
 def create_category(db: Session, category: schemas.CategoryBase):
     cat = models.Category(
         name=category.name,
-        remark=category.remark
+        remark=category.remark,
+        image_url=category.image_url,
+        restaurant_id=category.restaurant_id
     )
     db.add(cat)
     db.commit()
@@ -115,8 +117,11 @@ def create_category(db: Session, category: schemas.CategoryBase):
     return cat
 
 
-def list_categories(db: Session):
-    return db.query(models.Category).all()
+def list_categories(db: Session, rest_id: int | None = None):
+    query = db.query(models.Category)
+    if rest_id:
+        query = query.filter(models.Category.restaurant_id == rest_id)
+    return query.all()
 
 
 
@@ -136,6 +141,7 @@ def create_product(db: Session, rest_id: int, product_in: schemas.ProductCreate)
     )
 
     # attach categories
+    categories = []
     if product_in.category_ids:
         categories = (
             db.query(models.Category)
@@ -146,6 +152,20 @@ def create_product(db: Session, rest_id: int, product_in: schemas.ProductCreate)
 
     db.add(product)
     db.flush()  # 👈 IMPORTANT (gets product.id)
+
+    # 👇 AUTO-ATTACH CATEGORY IMAGES
+    for cat in categories:
+        if cat.image_url:
+            # Check if this image_url is already attached to this product
+            exists = db.query(models.ProductImage).filter(
+                models.ProductImage.product_id == product.id,
+                models.ProductImage.image_url == cat.image_url
+            ).first()
+            if not exists:
+                db.add(models.ProductImage(
+                    product_id=product.id,
+                    image_url=cat.image_url
+                ))
 
     # 👇 CREATE SIZES TOGETHER
     for size in product_in.sizes:
@@ -183,6 +203,20 @@ def update_product(
             .all()
         )
         product.categories = categories
+        
+        # 👇 AUTO-ATTACH CATEGORY IMAGES
+        for cat in categories:
+            if cat.image_url:
+                # Check if this image_url is already attached to this product
+                exists = db.query(models.ProductImage).filter(
+                    models.ProductImage.product_id == product.id,
+                    models.ProductImage.image_url == cat.image_url
+                ).first()
+                if not exists:
+                    db.add(models.ProductImage(
+                        product_id=product.id,
+                        image_url=cat.image_url
+                    ))
 
     # 🔹 Sizes (FIXED PROPERLY)
     if "sizes" in data:

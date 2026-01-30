@@ -91,7 +91,7 @@ def create_restaurant_api(
     location: str | None = Form(None),
     type: str | None = Form(None),
     pure_veg: bool = Form(False),
-
+    landmark: str | None = Form(None),
     # ✅ OPTIONAL LOGO
     logo: UploadFile | None = File(None),
 
@@ -116,6 +116,7 @@ def create_restaurant_api(
         location=location,
         type=type,
         pure_veg=pure_veg,
+        landmark=landmark,
 
         # ✅ SET LOGO URL
         logo_url=logo_url,
@@ -173,6 +174,7 @@ def update_restaurant_api(
     location: str | None = Form(None),
     type: str | None = Form(None),
     pure_veg: bool | None = Form(None),
+    landmark: str | None = Form(None),
 
     # ===== FILE =====
     logo: UploadFile | None = File(None),
@@ -199,6 +201,8 @@ def update_restaurant_api(
 
     if pure_veg is not None:
         restaurant.pure_veg = pure_veg
+    if landmark is not None:
+        restaurant.landmark = landmark
 
     # ----- Update logo -----
     if logo:
@@ -233,24 +237,36 @@ def get_restaurant_api(
 
 
 # =========================================================
-# CATEGORIES (ADMIN CREATE, PUBLIC READ)
+# CATEGORIES (RESTAURANT SPECIFIC)
 # =========================================================
 
 @router.post(
     "/categories/",
     response_model=CategoryRead,
-    dependencies=[Depends(require_admin)],
-     tags=["Category"]
+    tags=["Category"]
 )
 def create_category_api(
-    category: CategoryBase,
+    name: str = Form(...),
+    remark: str | None = Form(None),
+    image: UploadFile | None = File(None),
     db: Session = Depends(get_db),
+    user=Depends(require_restaurant) # Now restaurant can create its own
 ):
-    return create_category(db, category)
+    image_url = None
+    if image:
+        image_url = upload_file_to_s3(image, folder="categories")
+    
+    category_in = CategoryBase(name=name, remark=remark, image_url=image_url, restaurant_id=user["restaurant_id"])
+    return create_category(db, category_in)
 
 
-@router.get("/categories/", response_model=list[CategoryRead],   tags=["Category"])
-def list_categories_api(db: Session = Depends(get_db)):
+@router.get("/categories/", response_model=list[CategoryRead], tags=["Category"])
+def list_categories_api(
+    rest_id: int | None = None,
+    db: Session = Depends(get_db)
+):
+    if rest_id:
+        return db.query(models.Category).filter(models.Category.restaurant_id == rest_id).all()
     return list_categories(db)
 
 
@@ -287,7 +303,6 @@ def list_categories_api(db: Session = Depends(get_db)):
 def create_product_api(
     rest_id: int,
     product: str = Form(...),                # JSON string
-    images: list[UploadFile] = File(None),   # files
     db: Session = Depends(get_db),
     user=Depends(require_restaurant),
 ):
@@ -304,27 +319,7 @@ def create_product_api(
     # 🔹 Create product
     product_obj = create_product(db, rest_id, product_in)
 
-    # 🔹 Upload images & store URLs
-    if images:
-        for image in images:
-            url = upload_file_to_s3(image, folder="products")
-            db.add(ProductImage(
-                product_id=product_obj.id,
-                image_url=url
-            ))
-
-        db.commit()
-        db.refresh(product_obj)
-
-    # 🔹 Add gallery images
-    if product_in.gallery_image_urls:
-        for url in product_in.gallery_image_urls:
-            db.add(ProductImage(
-                product_id=product_obj.id,
-                image_url=url
-            ))
-        db.commit()
-        db.refresh(product_obj)
+    return product_obj
 
     return product_obj
 
@@ -387,7 +382,6 @@ def read_product_api(
 def update_product_api(
     product_id: int,
     product: str = Form(...),
-    images: list[UploadFile] = File(None),
     db: Session = Depends(get_db),
     user=Depends(require_restaurant),
 ):
@@ -404,27 +398,7 @@ def update_product_api(
     # 🔹 Update product fields
     updated_product = update_product(db, product_obj, product_in)
 
-    # 🔹 Upload & append images
-    if images:
-        for image in images:
-            url = upload_file_to_s3(image, folder="products")
-            db.add(ProductImage(
-                product_id=product_id,
-                image_url=url
-            ))
-
-        db.commit()
-        db.refresh(updated_product)
-
-    # 🔹 Add gallery images
-    if product_in.gallery_image_urls:
-        for url in product_in.gallery_image_urls:
-            db.add(ProductImage(
-                product_id=product_id,
-                image_url=url
-            ))
-        db.commit()
-        db.refresh(updated_product)
+    return updated_product
 
     return updated_product
 
@@ -616,8 +590,15 @@ def delete_product_api(
 def delete_category_api(
     category_id: int,
     db: Session = Depends(get_db),
-    user=Depends(require_admin) # Restricted to Admin
+    user=Depends(require_restaurant) # Now restaurant can delete its own
 ):
+    category = db.query(models.Category).filter(models.Category.id == category_id).first()
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+        
+    if category.restaurant_id != user["restaurant_id"]:
+         raise HTTPException(status_code=403, detail="Not allowed")
+
     success = delete_category(db, category_id)
     if not success:
         raise HTTPException(status_code=404, detail="Category not found")
