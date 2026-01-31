@@ -175,6 +175,7 @@ def update_restaurant_api(
     type: str | None = Form(None),
     pure_veg: bool | None = Form(None),
     landmark: str | None = Form(None),
+    phone_number: str | None = Form(None),
 
     # ===== FILE =====
     logo: UploadFile | None = File(None),
@@ -203,6 +204,8 @@ def update_restaurant_api(
         restaurant.pure_veg = pure_veg
     if landmark is not None:
         restaurant.landmark = landmark
+    if phone_number is not None:
+        restaurant.phone_number = phone_number
 
     # ----- Update logo -----
     if logo:
@@ -249,14 +252,15 @@ def create_category_api(
     name: str = Form(...),
     remark: str | None = Form(None),
     image: UploadFile | None = File(None),
+    image_url: str | None = Form(None), # Added to support gallery images
     db: Session = Depends(get_db),
     user=Depends(require_restaurant) # Now restaurant can create its own
 ):
-    image_url = None
+    final_image_url = image_url
     if image:
-        image_url = upload_file_to_s3(image, folder="categories")
+        final_image_url = upload_file_to_s3(image, folder="categories")
     
-    category_in = CategoryBase(name=name, remark=remark, image_url=image_url, restaurant_id=user["restaurant_id"])
+    category_in = CategoryBase(name=name, remark=remark, image_url=final_image_url, restaurant_id=user["restaurant_id"])
     return create_category(db, category_in)
 
 
@@ -428,10 +432,7 @@ def delete_product_image_api(
     if product.restaurant_id != user["restaurant_id"]:
         raise HTTPException(status_code=403, detail="Not allowed")
 
-    # 🔥 delete from S3
-    delete_file_from_s3(image.image_url)
-
-    # 🔥 delete from DB
+    # 🔥 delete from DB (just disconnects the image from this product)
     db.delete(image)
     db.commit()
 

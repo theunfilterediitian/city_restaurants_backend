@@ -20,6 +20,7 @@ class Restaurant(Base):
     name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
+    phone_number = Column(String(20), nullable=True)
 
     # 👇 NEW LOCATION FIELDS
     country_code = Column(String(5), nullable=True)   # e.g. IN

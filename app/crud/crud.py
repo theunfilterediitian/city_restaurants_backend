@@ -21,6 +21,7 @@ def create_restaurant(db: Session, rest_in: schemas.RestaurantCreate):
         name=rest_in.name,
         email=rest_in.email,
         password_hash=hashed,
+        phone_number=rest_in.phone_number,
 
         country_code=rest_in.country_code,
         state_code=rest_in.state_code,
@@ -30,6 +31,7 @@ def create_restaurant(db: Session, rest_in: schemas.RestaurantCreate):
         type=rest_in.type,
         pure_veg=rest_in.pure_veg,
         logo_url=rest_in.logo_url,
+        landmark=rest_in.landmark,
     )
 
     db.add(restaurant)
@@ -156,16 +158,18 @@ def create_product(db: Session, rest_id: int, product_in: schemas.ProductCreate)
     # 👇 AUTO-ATTACH CATEGORY IMAGES
     for cat in categories:
         if cat.image_url:
-            # Check if this image_url is already attached to this product
-            exists = db.query(models.ProductImage).filter(
-                models.ProductImage.product_id == product.id,
-                models.ProductImage.image_url == cat.image_url
-            ).first()
+            # Check if this image_url is already attached
+            exists = any(img.image_url == cat.image_url for img in product.images)
             if not exists:
-                db.add(models.ProductImage(
-                    product_id=product.id,
-                    image_url=cat.image_url
-                ))
+                product.images.append(models.ProductImage(image_url=cat.image_url))
+
+    # 👇 ATTACH GALLERY IMAGES (from media gallery)
+    if product_in.gallery_image_urls:
+        for image_url in product_in.gallery_image_urls:
+            # Check if this image_url is already attached
+            exists = any(img.image_url == image_url for img in product.images)
+            if not exists:
+                product.images.append(models.ProductImage(image_url=image_url))
 
     # 👇 CREATE SIZES TOGETHER
     for size in product_in.sizes:
@@ -207,16 +211,18 @@ def update_product(
         # 👇 AUTO-ATTACH CATEGORY IMAGES
         for cat in categories:
             if cat.image_url:
-                # Check if this image_url is already attached to this product
-                exists = db.query(models.ProductImage).filter(
-                    models.ProductImage.product_id == product.id,
-                    models.ProductImage.image_url == cat.image_url
-                ).first()
+                # Check if this image_url is already attached
+                exists = any(img.image_url == cat.image_url for img in product.images)
                 if not exists:
-                    db.add(models.ProductImage(
-                        product_id=product.id,
-                        image_url=cat.image_url
-                    ))
+                    product.images.append(models.ProductImage(image_url=cat.image_url))
+
+    # 🔹 Gallery Images (from media gallery)
+    if "gallery_image_urls" in data and data["gallery_image_urls"] is not None:
+        for image_url in data["gallery_image_urls"]:
+            # Check if this image_url is already attached
+            exists = any(img.image_url == image_url for img in product.images)
+            if not exists:
+                product.images.append(models.ProductImage(image_url=image_url))
 
     # 🔹 Sizes (FIXED PROPERLY)
     if "sizes" in data:
@@ -334,10 +340,16 @@ def soft_delete_product(db: Session, product_id: int):
     return product
 
 
+from sqlalchemy.orm import joinedload
+
 def get_products_by_restaurant(db: Session, rest_id: int):
     return db.query(models.Product).filter(
         models.Product.restaurant_id == rest_id,
         models.Product.is_deleted == False
+    ).options(
+        joinedload(models.Product.images),
+        joinedload(models.Product.sizes),
+        joinedload(models.Product.categories)
     ).all()
     
     

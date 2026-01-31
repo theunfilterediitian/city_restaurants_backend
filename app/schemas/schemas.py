@@ -127,6 +127,7 @@ class RestaurantCreate(BaseModel):
     name: str
     email: EmailStr
     password: str
+    phone_number: Optional[str] = None
 
     country_code: Optional[str] = None
     state_code: Optional[str] = None
@@ -144,6 +145,7 @@ class RestaurantRead(BaseModel):
     id: int
     name: str
     email: EmailStr
+    phone_number: Optional[str] = None
 
     country_code: Optional[str]
     state_code: Optional[str]
@@ -173,6 +175,7 @@ class RestaurantUpdate(BaseModel):
     pure_veg: Optional[bool] = None
     logo_url: Optional[str] = None
     landmark: Optional[str] = None
+    phone_number: Optional[str] = None
     
     
 class PublicRestaurantRead(BaseModel):
