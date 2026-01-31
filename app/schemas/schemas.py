@@ -182,6 +182,7 @@ class PublicRestaurantRead(BaseModel):
     id: int
     name: str
     email: str
+    phone_number: Optional[str] = None
     country_code: str
     state_code: str
     city_code: str
