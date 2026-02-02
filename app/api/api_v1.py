@@ -551,9 +551,15 @@ def get_public_restaurant_view(
     if not restaurant:
         raise HTTPException(status_code=404, detail="Restaurant not found")
 
+    from sqlalchemy.orm import selectinload
     products = db.query(models.Product).filter(
         models.Product.restaurant_id == restaurant.id,
-        models.Product.available.is_(True)
+        models.Product.available.is_(True),
+        models.Product.is_deleted.is_(False)
+    ).options(
+        selectinload(models.Product.sizes),
+        selectinload(models.Product.images),
+        selectinload(models.Product.categories)
     ).all()
 
     return {

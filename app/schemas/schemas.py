@@ -189,7 +189,7 @@ class PublicRestaurantRead(BaseModel):
     location: Optional[str]
     logo_url: Optional[str]
     pure_veg: bool
-    staff_rating: int
+    staff_rating: float
     type: str
 
     class Config:
