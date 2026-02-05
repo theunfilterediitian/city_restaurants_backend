@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status,
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.core.config import settings
-from app.core.deps import require_admin, require_restaurant
+from app.core.deps import require_admin, require_restaurant, get_current_user
 import shutil, os
 from pydantic import EmailStr  # Add this\
 from app.crud.crud import (
@@ -129,17 +129,7 @@ def create_restaurant_api(
 
 
 
-@router.delete("/restaurants/{restaurant_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)], tags=["Restaurant"]
-)
-def delete_restaurant_api(
-    restaurant_id: int,
-    db: Session = Depends(get_db),
-    
-):
-    restaurant = delete_restaurant(db, restaurant_id)
-    if not restaurant:
-        raise HTTPException(status_code=404, detail="Restaurant not found")
-    return
+
 
 
 # @router.patch("/restaurants/{restaurant_id}", response_model=RestaurantRead, tags=["Restaurant"])
@@ -181,7 +171,12 @@ def update_restaurant_api(
     logo: UploadFile | None = File(None),
 
     db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
 ):
+    # 🔐 Security Check: Admin or Self-Update only
+    if user["role"] != "admin" and user.get("restaurant_id") != restaurant_id:
+        raise HTTPException(status_code=403, detail="Not allowed to update this restaurant")
+
     restaurant = get_restaurant_by_id(db, restaurant_id)
     if not restaurant:
         raise HTTPException(status_code=404, detail="Restaurant not found")
@@ -503,27 +498,7 @@ def upload_product_images_api(
 
 
 
-@router.post(
-    "/temp/products/{product_id}/images/",
-    response_model=List[ProductImageRead],
-    tags=["TEMP"]
-)
-def upload_product_images_temp(
-    product_id: int,
-    files: List[UploadFile] = File(...),
-    db: Session = Depends(get_db),
-):  
- 
-    product = get_product(db, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
 
-    image_urls = []
-    for file in files:
-        url = upload_file_to_s3(file, f"products/{product_id}")
-        image_urls.append(url)
-
-    return add_product_images(db, product_id, image_urls)
 
 
 
@@ -676,7 +651,14 @@ def delete_media_asset_api(
         raise HTTPException(status_code=404, detail="Media asset not found")
     
     # 🔥 delete from S3
-    delete_file_from_s3(asset.image_url)
+    try:
+        delete_file_from_s3(asset.image_url)
+    except Exception as e:
+        print(f"❌ S3 Deletion Failed: {e}")
+        # If it's a permission error, we should probably stop and let the user know.
+        # But to avoid "stuck" records, you might sometimes want to pass. 
+        # For now, we raise a proper 500 so you see the message.
+        raise HTTPException(status_code=500, detail=f"S3 Deletion Failed (Check IAM Permissions): {str(e)}")
 
     # 🔹 ALSO DELETE from product_images where image_url matches
     db.query(models.ProductImage).filter(models.ProductImage.image_url == asset.image_url).delete()

@@ -15,7 +15,7 @@ s3 = boto3.client(
 
 def upload_file_to_s3(file, folder: str) -> str:
     ext = file.filename.split(".")[-1]
-    key = f"{folder}/{uuid.uuid4()}.{ext}"
+    key = f"indianrestros/{folder}/{uuid.uuid4()}.{ext}"
 
     s3.upload_fileobj(
         file.file,
